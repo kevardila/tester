@@ -1,0 +1,49 @@
+---
+# This workflow will be execute when the dev team create a pull request from some "feat" branch to development branch (just the PR creation).
+# This process verify that the code run unit tests and verify if the code compile successfully.
+# this workflows is the only integrtion code guarantee for team leader to aprove the PR.
+name: Feature integration request for Java
+
+# NOTE: Be careful not to modify this block to follow the guidelines.
+# Modifying them may disrupt CI/CD flows.
+on:
+  pull_request:
+    branches:
+      - development
+
+env:
+  JAVA_VERSION: 17
+  JAVA_DISTRIBUTION: temurin
+  COVERAGE: 80
+
+jobs:
+  get_variables:
+    outputs:
+        java_version: ${{steps.variables.outputs.java_version}}
+        java_distribution: ${{steps.variables.outputs.java_distribution}}
+        coverage: ${{steps.variables.outputs.coverage}}
+    runs-on: ubuntu-latest
+    steps:
+      - name: get variables
+        id: variables
+        run: |
+          echo "java_version=$(echo "$JAVA_VERSION")" >> $GITHUB_OUTPUT
+          echo "java_distribution=$(echo "$JAVA_DISTRIBUTION")" >> $GITHUB_OUTPUT
+          echo "coverage=$(echo "$COVERAGE")" >> $GITHUB_OUTPUT
+
+  run_unit_tests:
+    needs: get_variables
+    uses: bvcco/lab_devops_templates/.github/workflows/CI-unit_testing-java.yml@development
+    secrets: inherit
+    with:
+      java-version: ${{needs.get_variables.outputs.java_version}}
+      distribution: ${{needs.get_variables.outputs.java_distribution}}
+      coverage: ${{needs.get_variables.outputs.coverage}}
+
+  run_compilation_check:
+    needs: get_variables
+    uses: bvcco/lab_devops_templates/.github/workflows/CI-build-java.yml@development
+    secrets: inherit
+    with:
+      java-version: ${{needs.get_variables.outputs.java_version}}
+      distribution: ${{needs.get_variables.outputs.java_distribution}}

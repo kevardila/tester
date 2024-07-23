@@ -1,0 +1,57 @@
+name: Java Maven Build & Publish Artifact
+
+on:
+  pull_request_target:
+    types:
+      - closed
+    branches:
+      - development
+
+env:
+  JAVA_VERSION: 17
+  DISTRIBUTION: temurin
+  NODE_VERSION: 18
+  # harbor information
+  REGISTRY_REPOSITORY: jar-artifact
+  REGISTRY_PROJECT: test-devops
+
+jobs:
+
+  get_variables:
+    runs-on: ubuntu-latest
+    outputs:
+      java_version: ${{steps.variables.outputs.java_version}}
+      node_version: ${{steps.variables.outputs.node_version}}
+      registry_repository: ${{steps.variables.outputs.registry_repository}}
+      distribution: ${{steps.variables.outputs.distribution}}
+      registry_project: ${{steps.variables.outputs.registry_project}}
+    steps:
+      - name: get variables
+        id: variables
+        run: |
+          echo "java_version=$JAVA_VERSION" >> $GITHUB_OUTPUT
+          echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
+          echo "registry_repository=$REGISTRY_REPOSITORY" >> $GITHUB_OUTPUT
+          echo "distribution=$DISTRIBUTION" >> $GITHUB_OUTPUT
+          echo "registry_project=$REGISTRY_PROJECT" >> $GITHUB_OUTPUT
+
+  build_ci:
+    needs: get_variables
+    uses: bvcco/lab_devops_templates/.github/workflows/CI-deployment_build-java.yml@development
+    secrets: inherit
+    with:
+      java_version: ${{needs.get_variables.outputs.java_version}}
+      distribution: ${{needs.get_variables.outputs.distribution}}
+      node_version: ${{needs.get_variables.outputs.node_version}}
+      registry_repository: ${{needs.get_variables.outputs.registry_repository}}
+      registry_project: ${{needs.get_variables.outputs.registry_project}}
+
+  harbor-label:
+    needs: [build_ci, get_variables]
+    uses: bvcco/lab_devops_templates/.github/workflows/Utils-assign_label-harbor.yml@development
+    secrets: inherit
+    with:
+      tag: ${{needs.build_ci.outputs.tag}}
+      project: ${{needs.get_variables.outputs.registry_project}}
+      repository: ${{needs.get_variables.outputs.registry_repository}}
+      label: 'development'
