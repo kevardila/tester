@@ -1,0 +1,4 @@
+
+Hola mundo
+Esto es una prueba de como automatizar
+la inicializacion automatica
